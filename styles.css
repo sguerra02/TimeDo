@@ -24,6 +24,7 @@
 }
 
 *{box-sizing:border-box;}
+[hidden]{display:none !important;}
 html,body{margin:0;}
 body{
   font-family:var(--sans);
@@ -33,7 +34,7 @@ body{
   line-height:1.4;
 }
 button{font-family:inherit;}
-input,select,textarea{font-family:inherit;font-size:14px;}
+input,select,textarea{font-family:inherit;font-size:16px;}
 
 /* ---- topbar ---- */
 .topbar{
@@ -250,4 +251,7 @@ input:focus,select:focus,textarea:focus{
   .io .btn{padding:6px 9px;}
   .wrap{padding:10px 8px 60px;}
   .row.two{grid-template-columns:1fr;}
+  .btn-sm{padding:7px 12px;font-size:13.5px;}
+  .chip{padding:7px 12px;font-size:13.5px;}
+  .card-actions{gap:8px;}
 }
