@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Do Now</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">◧</span>
+    <span class="brand-name">Do Now</span>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button class="tab" data-view="now">Do Now</button>
+    <button class="tab" data-view="new">New</button>
+    <button class="tab" data-view="archive">Archive</button>
+  </nav>
+  <div class="io">
+    <button class="btn btn-ghost" id="exportBtn" title="Download all data as JSON">Export</button>
+    <button class="btn btn-ghost" id="importBtn" title="Load data from a JSON file">Import</button>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- DO NOW -->
+  <section class="view" id="view-now" hidden>
+    <div class="panel filterbar">
+      <label class="field-inline">
+        <span class="lbl">I have</span>
+        <input type="number" id="nowMinutes" min="0" step="1" placeholder="all" inputmode="numeric">
+        <span class="lbl">min</span>
+      </label>
+      <div class="chips" id="minuteChips">
+        <button class="chip" data-min="5">5</button>
+        <button class="chip" data-min="15">15</button>
+        <button class="chip" data-min="30">30</button>
+        <button class="chip" data-min="60">60</button>
+        <button class="chip" data-min="">all</button>
+      </div>
+      <span class="count" id="nowCount"></span>
+    </div>
+    <div id="nowList" class="list"></div>
+  </section>
+
+  <!-- NEW -->
+  <section class="view" id="view-new" hidden>
+    <form class="panel form" id="taskForm" autocomplete="off">
+      <div class="row">
+        <label class="field">
+          <span class="lbl">Label</span>
+          <input type="text" id="f-label" maxlength="120" required placeholder="What needs doing">
+        </label>
+      </div>
+      <div class="row two">
+        <label class="field">
+          <span class="lbl">Time (minutes)</span>
+          <input type="number" id="f-minutes" min="1" step="1" required placeholder="e.g. 20" inputmode="numeric">
+        </label>
+        <label class="field">
+          <span class="lbl">Priority <span class="hint">5 = highest</span></span>
+          <select id="f-priority">
+            <option value="5">5</option>
+            <option value="4">4</option>
+            <option value="3" selected>3</option>
+            <option value="2">2</option>
+            <option value="1">1</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label class="field">
+          <span class="lbl">Description</span>
+          <textarea id="f-desc" rows="4" maxlength="2000" placeholder="Details, steps, links"></textarea>
+        </label>
+      </div>
+      <div class="row actions-row">
+        <button type="submit" class="btn btn-accent">Add task</button>
+        <button type="reset" class="btn btn-ghost">Clear</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ARCHIVE -->
+  <section class="view" id="view-archive" hidden>
+    <div class="panel filterbar">
+      <div class="chips" id="archiveChips">
+        <button class="chip" data-status="all">All</button>
+        <button class="chip" data-status="completed">Completed</button>
+        <button class="chip" data-status="abandoned">Abandoned</button>
+      </div>
+      <span class="count" id="archiveCount"></span>
+    </div>
+    <div id="archiveList" class="list"></div>
+  </section>
+
+</main>
+
+<!-- EDIT MODAL -->
+<div class="modal-backdrop" id="modal" hidden>
+  <div class="modal panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle" class="modal-title">Edit task</h2>
+    <div class="row">
+      <label class="field">
+        <span class="lbl">Label</span>
+        <input type="text" id="e-label" maxlength="120">
+      </label>
+    </div>
+    <div class="row two">
+      <label class="field">
+        <span class="lbl">Time (minutes)</span>
+        <input type="number" id="e-minutes" min="1" step="1" inputmode="numeric">
+      </label>
+      <label class="field">
+        <span class="lbl">Priority <span class="hint">5 = highest</span></span>
+        <select id="e-priority">
+          <option value="5">5</option>
+          <option value="4">4</option>
+          <option value="3">3</option>
+          <option value="2">2</option>
+          <option value="1">1</option>
+        </select>
+      </label>
+    </div>
+    <div class="row">
+      <label class="field">
+        <span class="lbl">Description</span>
+        <textarea id="e-desc" rows="4" maxlength="2000"></textarea>
+      </label>
+    </div>
+    <div class="row actions-row">
+      <button class="btn btn-accent" id="modalSave">Save changes</button>
+      <button class="btn btn-ghost" id="modalCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
