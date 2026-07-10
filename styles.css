@@ -255,3 +255,29 @@ input:focus,select:focus,textarea:focus{
   .chip{padding:7px 12px;font-size:13.5px;}
   .card-actions{gap:8px;}
 }
+
+/* ---- pack + undo additions ---- */
+.toast{display:flex;align-items:center;gap:14px;}
+.toast-action{
+  background:transparent;
+  border:1px solid #565b61;
+  color:#fff;
+  padding:4px 11px;
+  border-radius:var(--radius);
+  cursor:pointer;
+  font-size:12.5px;
+}
+.toast-action:hover{background:var(--accent);border-color:var(--accent);}
+.chip.toggle{color:var(--muted);}
+.chip.toggle.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);}
+.badge.fits{background:var(--accent);}
+.card.overflow{opacity:.5;}
+.pack-divider{
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  padding:6px 2px 2px;
+  margin-top:2px;
+}
