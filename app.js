@@ -2,11 +2,13 @@
   "use strict";
 
   const STORE_KEY = "donow.tasks.v1";
+  const SETTINGS_KEY = "donow.settings.v1";
 
   const state = {
     tasks: [],
     view: "now",
     nowMinutes: "",       // "" = show all active
+    packMode: false,      // fit-to-budget on Do Now
     archiveStatus: "all", // all | completed | abandoned
     editingId: null,
   };
@@ -23,6 +25,19 @@
   }
   function save() {
     localStorage.setItem(STORE_KEY, JSON.stringify(state.tasks));
+  }
+  function loadSettings() {
+    try {
+      const s = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
+      state.nowMinutes = s.nowMinutes != null ? String(s.nowMinutes) : "";
+      state.packMode = !!s.packMode;
+    } catch (e) { /* defaults */ }
+  }
+  function saveSettings() {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+      nowMinutes: state.nowMinutes,
+      packMode: state.packMode,
+    }));
   }
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -51,12 +66,30 @@
     if (isNaN(p)) p = 3;
     return Math.min(5, Math.max(1, p));
   }
-  function toast(msg) {
+  function plural(n, word) {
+    return n + " " + word + (n === 1 ? "" : "s");
+  }
+  function toast(msg, opts) {
+    opts = opts || {};
     const t = document.getElementById("toast");
-    t.textContent = msg;
+    t.innerHTML = "";
+    const span = document.createElement("span");
+    span.textContent = msg;
+    t.appendChild(span);
+    if (opts.actionLabel && typeof opts.onAction === "function") {
+      const b = document.createElement("button");
+      b.className = "toast-action";
+      b.textContent = opts.actionLabel;
+      b.addEventListener("click", () => {
+        clearTimeout(toast._t);
+        t.hidden = true;
+        opts.onAction();
+      });
+      t.appendChild(b);
+    }
     t.hidden = false;
     clearTimeout(toast._t);
-    toast._t = setTimeout(() => { t.hidden = true; }, 2200);
+    toast._t = setTimeout(() => { t.hidden = true; }, opts.ms || 2200);
   }
 
   /* ---------- view switching ---------- */
@@ -72,9 +105,12 @@
   }
 
   /* ---------- card builder ---------- */
-  function cardHTML(t, context) {
+  function cardHTML(t, context, opts) {
+    opts = opts || {};
     const p = clampPriority(t.priority);
-    const doneClass = t.status === "completed" || t.status === "abandoned" ? " done" : "";
+    const doneClass = (t.status === "completed" || t.status === "abandoned") ? " done" : "";
+    const overflowClass = opts.overflow ? " overflow" : "";
+
     let meta =
       '<span title="' + esc(fmtFull(t.createdAt)) + '">created <b>' + fmtDate(t.createdAt) + "</b></span>";
     if (t.closedAt) {
@@ -83,12 +119,11 @@
         " <b>" + fmtDate(t.closedAt) + "</b></span>";
     }
 
-    let statusBadge = "";
-    if (context === "archive") {
-      statusBadge = '<span class="badge status-' + t.status + '">' + t.status + "</span>";
-    }
+    const fitsBadge = opts.inPack ? '<span class="badge fits">fits</span>' : "";
+    const statusBadge = context === "archive"
+      ? '<span class="badge status-' + t.status + '">' + t.status + "</span>" : "";
 
-    let actions = "";
+    let actions;
     if (context === "now") {
       actions =
         '<button class="btn btn-sm" data-act="edit" data-id="' + t.id + '">Edit</button>' +
@@ -101,11 +136,11 @@
     }
 
     return (
-      '<div class="card p' + p + doneClass + '">' +
+      '<div class="card p' + p + doneClass + overflowClass + '">' +
         '<div class="card-head">' +
           '<span class="card-title">' + esc(t.label) + "</span>" +
           '<span class="badge p' + p + '">P' + p + "</span>" +
-          statusBadge +
+          fitsBadge + statusBadge +
         "</div>" +
         '<div class="meta">' +
           "<span><b>" + Number(t.minutes) + "</b> min</span>" +
@@ -120,6 +155,10 @@
   /* ---------- Do Now ---------- */
   function renderNow() {
     const list = document.getElementById("nowList");
+    const countEl = document.getElementById("nowCount");
+    const packBtn = document.getElementById("packToggle");
+    packBtn.classList.toggle("active", state.packMode);
+
     const limitRaw = state.nowMinutes;
     const hasLimit = limitRaw !== "" && !isNaN(parseInt(limitRaw, 10));
     const limit = hasLimit ? parseInt(limitRaw, 10) : Infinity;
@@ -133,21 +172,45 @@
       new Date(a.createdAt) - new Date(b.createdAt)
     );
 
-    document.getElementById("nowCount").textContent =
-      items.length + (items.length === 1 ? " task" : " tasks");
+    // chip highlight
+    document.querySelectorAll("#minuteChips .chip").forEach((c) =>
+      c.classList.toggle("active", c.dataset.min === String(state.nowMinutes)));
 
     if (!items.length) {
+      countEl.textContent = "";
       list.innerHTML =
         '<div class="empty"><b>Nothing fits.</b>' +
         (hasLimit ? "Raise the minutes, or add a task." : "Add a task on the New tab.") +
         "</div>";
       return;
     }
-    list.innerHTML = items.map((t) => cardHTML(t, "now")).join("");
 
-    // sync chip highlight
-    document.querySelectorAll("#minuteChips .chip").forEach((c) =>
-      c.classList.toggle("active", c.dataset.min === String(state.nowMinutes)));
+    const totalMin = items.reduce((s, t) => s + Number(t.minutes), 0);
+
+    if (state.packMode && hasLimit) {
+      // greedy fill: items already sorted priority-desc, then shortest, then oldest
+      const packIds = new Set();
+      let sum = 0;
+      for (const t of items) {
+        if (sum + Number(t.minutes) <= limit) {
+          sum += Number(t.minutes);
+          packIds.add(t.id);
+        }
+      }
+      const pack = items.filter((t) => packIds.has(t.id));
+      const overflow = items.filter((t) => !packIds.has(t.id));
+
+      let html = pack.map((t) => cardHTML(t, "now", { inPack: true })).join("");
+      if (overflow.length) {
+        html += '<div class="pack-divider">over budget — ' + overflow.length + ' more</div>';
+        html += overflow.map((t) => cardHTML(t, "now", { overflow: true })).join("");
+      }
+      list.innerHTML = html;
+      countEl.textContent = "pack " + sum + "/" + limit + " min · " + plural(pack.length, "task");
+    } else {
+      list.innerHTML = items.map((t) => cardHTML(t, "now")).join("");
+      countEl.textContent = plural(items.length, "task") + " · " + totalMin + " min";
+    }
   }
 
   /* ---------- Archive ---------- */
@@ -161,8 +224,7 @@
     }
     items.sort((a, b) => new Date(b.closedAt || 0) - new Date(a.closedAt || 0));
 
-    document.getElementById("archiveCount").textContent =
-      items.length + (items.length === 1 ? " item" : " items");
+    document.getElementById("archiveCount").textContent = plural(items.length, "item");
 
     document.querySelectorAll("#archiveChips .chip").forEach((c) =>
       c.classList.toggle("active", c.dataset.status === state.archiveStatus));
@@ -173,6 +235,11 @@
       return;
     }
     list.innerHTML = items.map((t) => cardHTML(t, "archive")).join("");
+  }
+
+  function renderCurrent() {
+    if (state.view === "now") renderNow();
+    else if (state.view === "archive") renderArchive();
   }
 
   /* ---------- mutations ---------- */
@@ -192,16 +259,29 @@
   function findTask(id) {
     return state.tasks.find((t) => t.id === id);
   }
-  function setStatus(id, status) {
-    const t = findTask(id);
-    if (!t) return;
-    t.status = status;
-    t.closedAt = status === "active" ? null : new Date().toISOString();
-    save();
-  }
   function removeTask(id) {
     state.tasks = state.tasks.filter((t) => t.id !== id);
     save();
+  }
+  function statusWithUndo(id, status, doneMsg) {
+    const t = findTask(id);
+    if (!t) return;
+    const prev = { status: t.status, closedAt: t.closedAt };
+    t.status = status;
+    t.closedAt = status === "active" ? null : new Date().toISOString();
+    save();
+    renderCurrent();
+    toast(doneMsg, {
+      actionLabel: "Undo",
+      ms: 5000,
+      onAction: () => {
+        t.status = prev.status;
+        t.closedAt = prev.closedAt;
+        save();
+        renderCurrent();
+        toast("Undone.");
+      },
+    });
   }
 
   /* ---------- edit modal ---------- */
@@ -235,11 +315,6 @@
     toast("Saved.");
   }
 
-  function renderCurrent() {
-    if (state.view === "now") renderNow();
-    else if (state.view === "archive") renderArchive();
-  }
-
   /* ---------- export / import ---------- */
   function exportData() {
     const blob = new Blob([JSON.stringify(state.tasks, null, 2)], {
@@ -257,7 +332,6 @@
     a.remove();
     URL.revokeObjectURL(url);
   }
-
   function importData(file) {
     const reader = new FileReader();
     reader.onload = () => {
@@ -306,6 +380,7 @@
   /* ---------- wiring ---------- */
   function init() {
     load();
+    loadSettings();
 
     document.getElementById("tabs").addEventListener("click", (e) => {
       const b = e.target.closest(".tab");
@@ -331,8 +406,10 @@
 
     // minutes filter
     const minInput = document.getElementById("nowMinutes");
+    minInput.value = state.nowMinutes;
     minInput.addEventListener("input", () => {
       state.nowMinutes = minInput.value;
+      saveSettings();
       renderNow();
     });
     document.getElementById("minuteChips").addEventListener("click", (e) => {
@@ -340,6 +417,14 @@
       if (!c) return;
       state.nowMinutes = c.dataset.min;
       minInput.value = c.dataset.min;
+      saveSettings();
+      renderNow();
+    });
+
+    // fit-to-budget toggle
+    document.getElementById("packToggle").addEventListener("click", () => {
+      state.packMode = !state.packMode;
+      saveSettings();
       renderNow();
     });
 
@@ -351,16 +436,16 @@
       renderArchive();
     });
 
-    // card actions (delegated across both lists)
+    // card actions (delegated)
     document.querySelector("main").addEventListener("click", (e) => {
       const btn = e.target.closest("[data-act]");
       if (!btn) return;
       const id = btn.dataset.id;
       switch (btn.dataset.act) {
         case "edit": openEdit(id); break;
-        case "complete": setStatus(id, "completed"); renderNow(); toast("Completed."); break;
-        case "abandon": setStatus(id, "abandoned"); renderNow(); toast("Abandoned."); break;
-        case "restore": setStatus(id, "active"); renderArchive(); toast("Restored to active."); break;
+        case "complete": statusWithUndo(id, "completed", "Completed."); break;
+        case "abandon": statusWithUndo(id, "abandoned", "Abandoned."); break;
+        case "restore": statusWithUndo(id, "active", "Restored to active."); break;
         case "delete":
           if (confirm("Delete this task permanently? This can't be undone.")) {
             removeTask(id); renderArchive(); toast("Deleted.");
