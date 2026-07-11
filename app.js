@@ -11,6 +11,7 @@
     packMode: false,      // fit-to-budget on Do Now
     archiveStatus: "all", // all | completed | abandoned
     editingId: null,
+    theme: "light",       // light | dark
   };
 
   /* ---------- storage ---------- */
@@ -31,13 +32,25 @@
       const s = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
       state.nowMinutes = s.nowMinutes != null ? String(s.nowMinutes) : "";
       state.packMode = !!s.packMode;
+      state.theme = s.theme === "dark" ? "dark" : "light";
     } catch (e) { /* defaults */ }
   }
   function saveSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({
       nowMinutes: state.nowMinutes,
       packMode: state.packMode,
+      theme: state.theme,
     }));
+  }
+  function applyTheme() {
+    const dark = state.theme === "dark";
+    if (dark) document.documentElement.setAttribute("data-theme", "dark");
+    else document.documentElement.removeAttribute("data-theme");
+    const btn = document.getElementById("themeBtn");
+    if (btn) {
+      btn.textContent = dark ? "☀" : "☾";
+      btn.title = dark ? "Switch to light mode" : "Switch to dark mode";
+    }
   }
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -346,8 +359,12 @@
         toast("Expected a list of tasks.");
         return;
       }
-      let added = 0, updated = 0;
-      const byId = new Map(state.tasks.map((t) => [t.id, t]));
+      let added = 0, skipped = 0;
+      // A todo is a duplicate if its label matches one already present
+      // (case-insensitive, trimmed).
+      const sigOf = (x) => String(x.label || "").trim().toLowerCase();
+      const sigs = new Set(state.tasks.map(sigOf));
+      const ids = new Set(state.tasks.map((t) => t.id));
       parsed.forEach((raw) => {
         if (!raw || typeof raw !== "object") return;
         const t = {
@@ -361,18 +378,17 @@
           createdAt: raw.createdAt || new Date().toISOString(),
           closedAt: raw.closedAt || null,
         };
-        if (byId.has(t.id)) {
-          Object.assign(byId.get(t.id), t);
-          updated++;
-        } else {
-          state.tasks.push(t);
-          byId.set(t.id, t);
-          added++;
-        }
+        const s = sigOf(t);
+        if (sigs.has(s)) { skipped++; return; }   // duplicate content → ignore
+        if (ids.has(t.id)) t.id = uid();          // keep ids unique for a new item
+        state.tasks.push(t);
+        ids.add(t.id);
+        sigs.add(s);
+        added++;
       });
       save();
       renderCurrent();
-      toast("Imported: " + added + " added, " + updated + " updated.");
+      toast("Imported: " + added + " added, " + skipped + " skipped.");
     };
     reader.readAsText(file);
   }
@@ -381,6 +397,13 @@
   function init() {
     load();
     loadSettings();
+    applyTheme();
+
+    document.getElementById("themeBtn").addEventListener("click", () => {
+      state.theme = state.theme === "dark" ? "light" : "dark";
+      saveSettings();
+      applyTheme();
+    });
 
     document.getElementById("tabs").addEventListener("click", (e) => {
       const b = e.target.closest(".tab");
