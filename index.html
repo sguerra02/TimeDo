@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Do Now</title>
+<script>
+  try {
+    var s = JSON.parse(localStorage.getItem("donow.settings.v1")) || {};
+    if (s.theme === "dark") document.documentElement.setAttribute("data-theme", "dark");
+  } catch (e) {}
+</script>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -18,6 +24,7 @@
     <button class="tab" data-view="archive">Archive</button>
   </nav>
   <div class="io">
+    <button class="btn btn-ghost" id="themeBtn" title="Toggle dark mode" aria-label="Toggle dark mode">☾</button>
     <button class="btn btn-ghost" id="exportBtn" title="Download all data as JSON">Export</button>
     <button class="btn btn-ghost" id="importBtn" title="Load data from a JSON file">Import</button>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
