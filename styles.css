@@ -309,3 +309,16 @@ html[data-theme="dark"]{
   --toast-bg:#0f1113;
   --toast-fg:#f2f4f6;
 }
+
+/* ---- collapsible cards + sort ---- */
+.card-head{cursor:pointer;user-select:none;}
+.card-head:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.card-head .card-time{
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--muted);
+  white-space:nowrap;
+}
+.card.collapsed .card-body{display:none;}
+.card.collapsed{padding-bottom:9px;}
+.seg-lbl{color:var(--muted);font-size:12px;margin-left:6px;}
