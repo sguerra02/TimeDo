@@ -12,6 +12,8 @@
     archiveStatus: "all", // all | completed | abandoned
     editingId: null,
     theme: "light",       // light | dark
+    sort: "priority",     // priority | time | age
+    expanded: new Set(),  // ids of expanded cards (session only)
   };
 
   /* ---------- storage ---------- */
@@ -33,6 +35,7 @@
       state.nowMinutes = s.nowMinutes != null ? String(s.nowMinutes) : "";
       state.packMode = !!s.packMode;
       state.theme = s.theme === "dark" ? "dark" : "light";
+      state.sort = ["priority", "time", "age"].includes(s.sort) ? s.sort : "priority";
     } catch (e) { /* defaults */ }
   }
   function saveSettings() {
@@ -40,6 +43,7 @@
       nowMinutes: state.nowMinutes,
       packMode: state.packMode,
       theme: state.theme,
+      sort: state.sort,
     }));
   }
   function applyTheme() {
@@ -82,6 +86,20 @@
   function plural(n, word) {
     return n + " " + word + (n === 1 ? "" : "s");
   }
+  // 45 -> "45 minutes"; 60 -> "1 hour"; 200 -> "3 hours 20 minutes";
+  // 6075 -> "4 days 5 hours 15 minutes". Zero units are omitted.
+  function fmtDuration(mins) {
+    mins = Math.max(0, Math.round(Number(mins) || 0));
+    if (mins < 60) return plural(mins, "minute");
+    const d = Math.floor(mins / 1440);
+    const h = Math.floor((mins % 1440) / 60);
+    const m = mins % 60;
+    const parts = [];
+    if (d) parts.push(plural(d, "day"));
+    if (h) parts.push(plural(h, "hour"));
+    if (m) parts.push(plural(m, "minute"));
+    return parts.join(" ");
+  }
   function toast(msg, opts) {
     opts = opts || {};
     const t = document.getElementById("toast");
@@ -121,13 +139,15 @@
   function cardHTML(t, context, opts) {
     opts = opts || {};
     const p = clampPriority(t.priority);
+    const expanded = state.expanded.has(t.id);
     const doneClass = (t.status === "completed" || t.status === "abandoned") ? " done" : "";
     const overflowClass = opts.overflow ? " overflow" : "";
+    const collapsedClass = expanded ? "" : " collapsed";
 
-    let meta =
+    let dates =
       '<span title="' + esc(fmtFull(t.createdAt)) + '">created <b>' + fmtDate(t.createdAt) + "</b></span>";
     if (t.closedAt) {
-      meta += '<span title="' + esc(fmtFull(t.closedAt)) + '">' +
+      dates += '<span title="' + esc(fmtFull(t.closedAt)) + '">' +
         (t.status === "completed" ? "completed" : "abandoned") +
         " <b>" + fmtDate(t.closedAt) + "</b></span>";
     }
@@ -149,23 +169,31 @@
     }
 
     return (
-      '<div class="card p' + p + doneClass + overflowClass + '">' +
-        '<div class="card-head">' +
+      '<div class="card p' + p + doneClass + overflowClass + collapsedClass + '" data-id="' + t.id + '">' +
+        '<div class="card-head" role="button" tabindex="0" aria-expanded="' + expanded + '">' +
           '<span class="card-title">' + esc(t.label) + "</span>" +
+          '<span class="card-time">' + Number(t.minutes) + " min</span>" +
           '<span class="badge p' + p + '">P' + p + "</span>" +
           fitsBadge + statusBadge +
         "</div>" +
-        '<div class="meta">' +
-          "<span><b>" + Number(t.minutes) + "</b> min</span>" +
-          meta +
+        '<div class="card-body">' +
+          '<div class="meta">' + dates + "</div>" +
+          (t.description ? '<div class="desc">' + esc(t.description) + "</div>" : "") +
+          '<div class="card-actions">' + actions + "</div>" +
         "</div>" +
-        (t.description ? '<div class="desc">' + esc(t.description) + "</div>" : "") +
-        '<div class="card-actions">' + actions + "</div>" +
       "</div>"
     );
   }
 
   /* ---------- Do Now ---------- */
+  function nowComparator() {
+    const byPrio = (a, b) => clampPriority(b.priority) - clampPriority(a.priority);
+    const byTime = (a, b) => Number(a.minutes) - Number(b.minutes);
+    const byAge = (a, b) => new Date(a.createdAt) - new Date(b.createdAt);
+    if (state.sort === "time") return (a, b) => byTime(a, b) || byPrio(a, b) || byAge(a, b);
+    if (state.sort === "age") return (a, b) => byAge(a, b) || byPrio(a, b) || byTime(a, b);
+    return (a, b) => byPrio(a, b) || byTime(a, b) || byAge(a, b);
+  }
   function renderNow() {
     const list = document.getElementById("nowList");
     const countEl = document.getElementById("nowCount");
@@ -179,15 +207,13 @@
     let items = state.tasks.filter(
       (t) => t.status === "active" && Number(t.minutes) <= limit
     );
-    items.sort((a, b) =>
-      clampPriority(b.priority) - clampPriority(a.priority) ||
-      Number(a.minutes) - Number(b.minutes) ||
-      new Date(a.createdAt) - new Date(b.createdAt)
-    );
+    items.sort(nowComparator());
 
     // chip highlight
     document.querySelectorAll("#minuteChips .chip").forEach((c) =>
       c.classList.toggle("active", c.dataset.min === String(state.nowMinutes)));
+    document.querySelectorAll("#sortChips .chip").forEach((c) =>
+      c.classList.toggle("active", c.dataset.sort === state.sort));
 
     if (!items.length) {
       countEl.textContent = "";
@@ -219,10 +245,12 @@
         html += overflow.map((t) => cardHTML(t, "now", { overflow: true })).join("");
       }
       list.innerHTML = html;
-      countEl.textContent = "pack " + sum + "/" + limit + " min · " + plural(pack.length, "task");
+      countEl.textContent =
+        "pack " + fmtDuration(sum) + " of " + fmtDuration(limit) +
+        " · " + plural(pack.length, "task");
     } else {
       list.innerHTML = items.map((t) => cardHTML(t, "now")).join("");
-      countEl.textContent = plural(items.length, "task") + " · " + totalMin + " min";
+      countEl.textContent = plural(items.length, "task") + " · " + fmtDuration(totalMin);
     }
   }
 
@@ -393,6 +421,17 @@
     reader.readAsText(file);
   }
 
+  function toggleCard(head) {
+    const card = head.closest(".card");
+    if (!card) return;
+    const id = card.dataset.id;
+    const nowExpanded = !state.expanded.has(id);
+    if (nowExpanded) state.expanded.add(id);
+    else state.expanded.delete(id);
+    card.classList.toggle("collapsed", !nowExpanded);
+    head.setAttribute("aria-expanded", String(nowExpanded));
+  }
+
   /* ---------- wiring ---------- */
   function init() {
     load();
@@ -451,6 +490,15 @@
       renderNow();
     });
 
+    // sort
+    document.getElementById("sortChips").addEventListener("click", (e) => {
+      const c = e.target.closest(".chip");
+      if (!c) return;
+      state.sort = c.dataset.sort;
+      saveSettings();
+      renderNow();
+    });
+
     // archive filter
     document.getElementById("archiveChips").addEventListener("click", (e) => {
       const c = e.target.closest(".chip");
@@ -459,22 +507,32 @@
       renderArchive();
     });
 
-    // card actions (delegated)
-    document.querySelector("main").addEventListener("click", (e) => {
+    // card actions + collapse toggle (delegated)
+    const mainEl = document.querySelector("main");
+    mainEl.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-act]");
-      if (!btn) return;
-      const id = btn.dataset.id;
-      switch (btn.dataset.act) {
-        case "edit": openEdit(id); break;
-        case "complete": statusWithUndo(id, "completed", "Completed."); break;
-        case "abandon": statusWithUndo(id, "abandoned", "Abandoned."); break;
-        case "restore": statusWithUndo(id, "active", "Restored to active."); break;
-        case "delete":
-          if (confirm("Delete this task permanently? This can't be undone.")) {
-            removeTask(id); renderArchive(); toast("Deleted.");
-          }
-          break;
+      if (btn) {
+        const id = btn.dataset.id;
+        switch (btn.dataset.act) {
+          case "edit": openEdit(id); break;
+          case "complete": statusWithUndo(id, "completed", "Completed."); break;
+          case "abandon": statusWithUndo(id, "abandoned", "Abandoned."); break;
+          case "restore": statusWithUndo(id, "active", "Restored to active."); break;
+          case "delete":
+            if (confirm("Delete this task permanently? This can't be undone.")) {
+              removeTask(id); renderArchive(); toast("Deleted.");
+            }
+            break;
+        }
+        return;
       }
+      const head = e.target.closest(".card-head");
+      if (head) toggleCard(head);
+    });
+    mainEl.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const head = e.target.closest(".card-head");
+      if (head) { e.preventDefault(); toggleCard(head); }
     });
 
     // modal
