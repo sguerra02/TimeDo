@@ -7,7 +7,7 @@
 <script>
   try {
     var s = JSON.parse(localStorage.getItem("donow.settings.v1")) || {};
-    if (s.theme === "dark") document.documentElement.setAttribute("data-theme", "dark");
+    if (s.theme) document.documentElement.setAttribute("data-theme", s.theme);
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="styles.css">
@@ -19,49 +19,65 @@
     <span class="brand-name">Do Now</span>
   </div>
   <nav class="tabs" id="tabs">
-    <button class="tab" data-view="now">Do Now</button>
+    <button class="tab" data-view="main">Home</button>
     <button class="tab" data-view="new">New</button>
     <button class="tab" data-view="archive">Archive</button>
   </nav>
   <div class="io">
-    <button class="btn btn-ghost" id="themeBtn" title="Toggle dark mode" aria-label="Toggle dark mode">☾</button>
-    <button class="btn btn-ghost" id="exportBtn" title="Download all data as JSON">Export</button>
-    <button class="btn btn-ghost" id="importBtn" title="Load data from a JSON file">Import</button>
+    <button class="tbtn" id="themeBtn" title="Themes" aria-label="Themes">◑</button>
+    <button class="tbtn" id="exportBtn" title="Download all data as JSON">Export</button>
+    <button class="tbtn" id="importBtn" title="Load data from a JSON file">Import</button>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
   </div>
 </header>
 
 <main class="wrap">
 
-  <!-- DO NOW -->
-  <section class="view" id="view-now" hidden>
-    <div class="panel filterbar">
-      <label class="field-inline">
-        <span class="lbl">I have</span>
-        <input type="number" id="nowMinutes" min="0" step="1" placeholder="all" inputmode="numeric">
-        <span class="lbl">min</span>
-      </label>
-      <div class="chips" id="minuteChips">
-        <button class="chip" data-min="5">5</button>
-        <button class="chip" data-min="15">15</button>
-        <button class="chip" data-min="30">30</button>
-        <button class="chip" data-min="60">60</button>
-        <button class="chip" data-min="">all</button>
-      </div>
-      <button class="chip toggle" id="packToggle" title="Suggest a set of tasks that fits your total time">Fit to budget</button>
-      <span class="seg-lbl">sort</span>
-      <div class="chips" id="sortChips">
-        <button class="chip" data-sort="priority">Priority</button>
-        <button class="chip" data-sort="time">Shortest</button>
-        <button class="chip" data-sort="age">Oldest</button>
-      </div>
-      <span class="count" id="nowCount"></span>
+  <!-- HOME: Do Now + Days Since -->
+  <section class="view" id="view-main" hidden>
+    <div class="chips subtabs" id="mainSubtabs">
+      <button class="chip" data-mainkind="now">Do Now</button>
+      <button class="chip" data-mainkind="days">Days Since</button>
     </div>
-    <div id="nowList" class="list"></div>
+
+    <div id="pane-now" class="pane">
+      <div class="panel filterbar">
+        <label class="field-inline">
+          <span class="lbl">I have</span>
+          <input type="number" id="nowMinutes" min="0" step="1" placeholder="all" inputmode="numeric">
+        </label>
+        <div class="chips" id="unitChips">
+          <button class="chip" data-unit="min">min</button>
+          <button class="chip" data-unit="hr">hr</button>
+        </div>
+        <div class="chips" id="minuteChips"></div>
+        <button class="chip toggle" id="packToggle" title="Suggest a set of tasks that fits your total time">Fit to budget</button>
+        <span class="seg-lbl">sort</span>
+        <div class="chips" id="sortChips">
+          <button class="chip" data-sort="priority">Priority</button>
+          <button class="chip" data-sort="time">Shortest</button>
+          <button class="chip" data-sort="age">Oldest</button>
+        </div>
+        <span class="count" id="nowCount"></span>
+      </div>
+      <div id="nowList" class="list"></div>
+    </div>
+
+    <div id="pane-days" class="pane" hidden>
+      <div class="panel filterbar">
+        <label class="field-inline"><input type="checkbox" id="showHidden"> <span class="lbl">Show hidden</span></label>
+        <span class="count" id="daysCount"></span>
+      </div>
+      <div id="daysList" class="list"></div>
+    </div>
   </section>
 
   <!-- NEW -->
   <section class="view" id="view-new" hidden>
+    <div class="chips subtabs" id="newSubtabs">
+      <button class="chip" data-newkind="task">Task</button>
+      <button class="chip" data-newkind="day">Days Since</button>
+    </div>
     <form class="panel form" id="taskForm" autocomplete="off">
       <div class="row">
         <label class="field">
@@ -96,6 +112,34 @@
         <button type="reset" class="btn btn-ghost">Clear</button>
       </div>
     </form>
+    <form class="panel form" id="dayForm" autocomplete="off" hidden>
+      <div class="row two">
+        <label class="field">
+          <span class="lbl">Title</span>
+          <input type="text" id="d-title" maxlength="120" required placeholder="e.g. Water the plants">
+        </label>
+        <label class="field">
+          <span class="lbl">Goal (days)</span>
+          <input type="number" id="d-goal" min="1" step="1" required placeholder="e.g. 3" inputmode="numeric">
+        </label>
+      </div>
+      <div class="row">
+        <label class="field">
+          <span class="lbl">Notes</span>
+          <textarea id="d-notes" rows="2" maxlength="2000" placeholder="Optional"></textarea>
+        </label>
+      </div>
+      <div class="row actions-row">
+        <button type="submit" class="btn btn-accent">Add tracker</button>
+        <button type="reset" class="btn btn-ghost">Clear</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- THEMES -->
+  <section class="view" id="view-themes" hidden>
+    <div class="themes-head"><span class="lbl">Choose a theme</span></div>
+    <div id="themeList" class="theme-list"></div>
   </section>
 
   <!-- ARCHIVE -->
@@ -148,6 +192,39 @@
     <div class="row actions-row">
       <button class="btn btn-accent" id="modalSave">Save changes</button>
       <button class="btn btn-ghost" id="modalCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- DAY EDIT MODAL -->
+<div class="modal-backdrop" id="dayModal" hidden>
+  <div class="modal panel" role="dialog" aria-modal="true" aria-labelledby="dayModalTitle">
+    <h2 id="dayModalTitle" class="modal-title">Edit tracker</h2>
+    <div class="row">
+      <label class="field">
+        <span class="lbl">Title</span>
+        <input type="text" id="de-title" maxlength="120">
+      </label>
+    </div>
+    <div class="row two">
+      <label class="field">
+        <span class="lbl">Goal (days)</span>
+        <input type="number" id="de-goal" min="1" step="1" inputmode="numeric">
+      </label>
+      <label class="field">
+        <span class="lbl">Last completed</span>
+        <input type="date" id="de-date">
+      </label>
+    </div>
+    <div class="row">
+      <label class="field">
+        <span class="lbl">Notes</span>
+        <textarea id="de-notes" rows="4" maxlength="2000"></textarea>
+      </label>
+    </div>
+    <div class="row actions-row">
+      <button class="btn btn-accent" id="dayModalSave">Save changes</button>
+      <button class="btn btn-ghost" id="dayModalCancel">Cancel</button>
     </div>
   </div>
 </div>
