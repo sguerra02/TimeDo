@@ -7,18 +7,23 @@
 
   // Theme registry. Preview colors mirror the CSS token blocks in styles.css.
   const THEMES = [
-    { id: "light",     name: "Light",     bg: "#f4f5f6", panel: "#ffffff", ink: "#17191c", accent: "#0d7d72", line: "#d7dadd", topbar: "#17191c" },
-    { id: "dark",      name: "Dark",      bg: "#15181b", panel: "#1d2125", ink: "#e6e9ec", accent: "#1f9e8f", line: "#2b3036", topbar: "#17191c" },
-    { id: "solarized", name: "Solarized", bg: "#002b36", panel: "#073642", ink: "#c3cdc9", accent: "#2aa198", line: "#0b3c49", topbar: "#073642" },
-    { id: "terminal",  name: "Terminal",  bg: "#0a0f0a", panel: "#0f160f", ink: "#33ff66", accent: "#39ff14", line: "#123512", topbar: "#020a02" },
-    { id: "nord",      name: "Nord",      bg: "#2e3440", panel: "#3b4252", ink: "#e5e9f0", accent: "#88c0d0", line: "#434c5e", topbar: "#242933" },
-    { id: "gruvbox",   name: "Gruvbox",   bg: "#282828", panel: "#32302f", ink: "#ebdbb2", accent: "#fabd2f", line: "#3c3836", topbar: "#1d2021" },
-    { id: "sepia",     name: "Sepia",     bg: "#f4ecd8", panel: "#fbf6e9", ink: "#4b3b2a", accent: "#a0522d", line: "#e0d3b8", topbar: "#5b4636" },
-    { id: "rose",      name: "Ros\u00e9", bg: "#fff1f2", panel: "#fff7f8", ink: "#4a2c2f", accent: "#e11d48", line: "#f6d9de", topbar: "#4a2c2f" },
-    { id: "neon",      name: "Neon",      bg: "#05070d", panel: "#0b1020", ink: "#d6e6ff", accent: "#00e5ff", line: "#152036", topbar: "#02040a" },
-    { id: "ocean",     name: "Ocean",     bg: "#04212b", panel: "#063442", ink: "#cdeef0", accent: "#2ec4b6", line: "#0a4150", topbar: "#02171e" },
-    { id: "batman",    name: "Batman",    bg: "#0c0c0f", panel: "#161619", ink: "#e9e9ec", accent: "#ffd400", line: "#26262c", topbar: "#000000" },
-    { id: "joker",     name: "Joker",     bg: "#160a24", panel: "#241338", ink: "#e7d9ff", accent: "#4ade80", line: "#33204d", topbar: "#2d0b45" },
+    { id: "light",      name: "Light",      bg: "#f4f5f6", panel: "#ffffff", ink: "#17191c", accent: "#0d7d72", line: "#d7dadd", topbar: "#17191c" },
+    { id: "dark",       name: "Dark",       bg: "#15181b", panel: "#1d2125", ink: "#e6e9ec", accent: "#1f9e8f", line: "#2b3036", topbar: "#17191c" },
+    { id: "batman",     name: "Batman",     bg: "#0c0c0f", panel: "#161619", ink: "#e9e9ec", accent: "#ffd400", line: "#26262c", topbar: "#000000" },
+    { id: "joker",      name: "Joker",      bg: "#160a24", panel: "#241338", ink: "#e7d9ff", accent: "#4ade80", line: "#33204d", topbar: "#2d0b45" },
+    { id: "terminator", name: "Terminator", bg: "#0b0c0e", panel: "#151719", ink: "#d7d9dc", accent: "#e10600", line: "#26292d", topbar: "#000000" },
+    { id: "matrix",     name: "Matrix",     bg: "#000600", panel: "#031803", ink: "#00ff41", accent: "#00ff41", line: "#052b05", topbar: "#000000" },
+    { id: "sonic",      name: "Sonic",      bg: "#0a2a6b", panel: "#123a86", ink: "#eaf1ff", accent: "#ffd21e", line: "#1c4aa0", topbar: "#061c4a" },
+    { id: "redwings",   name: "Red Wings",  bg: "#f3f4f5", panel: "#ffffff", ink: "#1a1a1a", accent: "#ce1126", line: "#e2d7d7", topbar: "#ce1126" },
+    { id: "michigan",   name: "Michigan",   bg: "#00274c", panel: "#0a355f", ink: "#eef3f8", accent: "#ffcb05", line: "#164574", topbar: "#001730" },
+    { id: "lions",      name: "Lions",      bg: "#eceef0", panel: "#ffffff", ink: "#1b2733", accent: "#0076b6", line: "#d3d9de", topbar: "#0076b6" },
+    { id: "tigers",     name: "Tigers",     bg: "#0c2340", panel: "#132f52", ink: "#eef2f7", accent: "#fa4616", line: "#1d3f63", topbar: "#07182e" },
+    { id: "pistons",    name: "Pistons '95",bg: "#052e2a", panel: "#0a3f39", ink: "#e6f2f0", accent: "#00a89d", line: "#0f4d46", topbar: "#021815" },
+    { id: "nineties",   name: "90s",        bg: "#f4f1ea", panel: "#ffffff", ink: "#1f2a33", accent: "#009fb7", line: "#e2ded4", topbar: "#1f2a33" },
+    { id: "eighties",   name: "80s",        bg: "#0b1233", panel: "#141a44", ink: "#eaf0ff", accent: "#ff2e88", line: "#222a5e", topbar: "#060826" },
+    { id: "seventies",  name: "70s",        bg: "#e8dcc0", panel: "#f3ead2", ink: "#3a2c17", accent: "#c1440e", line: "#d6c69f", topbar: "#6b4a2b" },
+    { id: "sixties",    name: "60s",        bg: "#faf3e0", panel: "#ffffff", ink: "#2b2320", accent: "#e8551f", line: "#eadfc6", topbar: "#1f9e8f" },
+    { id: "fifties",    name: "50s",        bg: "#f6efe4", panel: "#fffdf7", ink: "#33403f", accent: "#ff6f61", line: "#dfe8e2", topbar: "#2ec4b6" },
   ];
   const THEME_IDS = THEMES.map((t) => t.id);
 
@@ -487,7 +492,7 @@
     const collapsedClass = it.minimized ? " collapsed" : "";
     const hiddenClass = it.hidden ? " ishidden" : "";
     const reachedClass = reached ? " reached" : "";
-    const reachedBadge = reached ? '<span class="badge fits">goal reached</span>' : "";
+    const reachedBadge = reached ? '<span class="badge fits">Overdue </span>' : "";
     return (
       '<div class="card daycard' + collapsedClass + hiddenClass + reachedClass + '" data-id="' + it.id + '">' +
         '<div class="card-head" role="button" tabindex="0" aria-expanded="' + (!it.minimized) + '">' +
