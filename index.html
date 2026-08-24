@@ -229,6 +229,29 @@
   </div>
 </div>
 
+<!-- COMPLETE / LOG MODAL -->
+<div class="modal-backdrop" id="doneModal" hidden>
+  <div class="modal panel" role="dialog" aria-modal="true" aria-labelledby="doneModalTitle">
+    <h2 id="doneModalTitle" class="modal-title">Log completion</h2>
+    <div class="row">
+      <label class="field">
+        <span class="lbl">Date completed</span>
+        <input type="date" id="done-date">
+      </label>
+    </div>
+    <div class="row">
+      <label class="field">
+        <span class="lbl">Notes <span class="hint">optional</span></span>
+        <textarea id="done-notes" rows="3" maxlength="2000" placeholder="Any details to attach to this date"></textarea>
+      </label>
+    </div>
+    <div class="row actions-row">
+      <button class="btn btn-accent" id="doneSave">Log completion</button>
+      <button class="btn btn-ghost" id="doneCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" hidden></div>
 
 <script src="app.js"></script>
