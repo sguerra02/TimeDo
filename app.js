@@ -18,12 +18,10 @@
     { id: "michigan",   name: "Michigan",   bg: "#00274c", panel: "#0a355f", ink: "#eef3f8", accent: "#ffcb05", line: "#164574", topbar: "#001730" },
     { id: "lions",      name: "Lions",      bg: "#eceef0", panel: "#ffffff", ink: "#1b2733", accent: "#0076b6", line: "#d3d9de", topbar: "#0076b6" },
     { id: "tigers",     name: "Tigers",     bg: "#0c2340", panel: "#132f52", ink: "#eef2f7", accent: "#fa4616", line: "#1d3f63", topbar: "#07182e" },
-    { id: "pistons",    name: "Pistons '95",bg: "#062430", panel: "#0c2a37", ink: "#eaf6fb", accent: "#1ba0d6", line: "#123a4a", topbar: "#000000" },
+    { id: "pistons",    name: "Pistons '95",bg: "#f4f5f3", panel: "#ffffff", ink: "#1a2322", accent: "#0b8487", line: "#e3e8e6", topbar: "#0d8f92" },
     { id: "nineties",   name: "90s",        bg: "#f4f1ea", panel: "#ffffff", ink: "#1f2a33", accent: "#009fb7", line: "#e2ded4", topbar: "#1f2a33" },
     { id: "eighties",   name: "80s",        bg: "#0b1233", panel: "#141a44", ink: "#eaf0ff", accent: "#ff2e88", line: "#222a5e", topbar: "#060826" },
     { id: "seventies",  name: "70s",        bg: "#e8dcc0", panel: "#f3ead2", ink: "#3a2c17", accent: "#c1440e", line: "#d6c69f", topbar: "#6b4a2b" },
-    { id: "sixties",    name: "60s",        bg: "#faf3e0", panel: "#ffffff", ink: "#2b2320", accent: "#e8551f", line: "#eadfc6", topbar: "#1f9e8f" },
-    { id: "fifties",    name: "50s",        bg: "#f6efe4", panel: "#fffdf7", ink: "#33403f", accent: "#ff6f61", line: "#dfe8e2", topbar: "#2ec4b6" },
   ];
   const THEME_IDS = THEMES.map((t) => t.id);
 
