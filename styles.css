@@ -349,6 +349,24 @@ html[data-theme="dark"]{
 .day-progress-fill{height:100%;background:var(--accent);}
 .daycard.ishidden{opacity:.55;}
 .pane{display:block;}
+.daylog{
+  margin-top:8px;
+  border-top:1px solid var(--line);
+  padding-top:6px;
+}
+.daylog-title{
+  font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted);font-weight:600;margin-bottom:4px;
+}
+.daylog-row{display:flex;align-items:baseline;gap:8px;padding:2px 0;font-size:12.5px;}
+.daylog-date{font-family:var(--mono);color:var(--ink);white-space:nowrap;font-weight:600;}
+.daylog-note{color:var(--desc);flex:1;white-space:pre-wrap;word-break:break-word;}
+.daylog-note.daylog-empty{color:var(--muted);}
+.daylog-del{
+  margin-left:auto;border:0;background:transparent;color:var(--muted);
+  cursor:pointer;font-size:15px;line-height:1;padding:0 2px;
+}
+.daylog-del:hover{color:var(--danger);}
 
 /* ---- new-tab subtabs + themes screen ---- */
 .subtabs{margin-bottom:12px;}
@@ -436,12 +454,12 @@ html[data-theme="tigers"]{
   --topbar-bg:#07182e;--topbar-fg:#ffffff;--topbar-tab:#8298b3;--topbar-btn-border:#2a4f78;--topbar-btn-hover:#132f52;
 }
 html[data-theme="pistons"]{
-  --bg:#052e2a;--panel:#0a3f39;--ink:#e6f2f0;--muted:#6fa39c;
-  --line:#0f4d46;--line-strong:#166058;
-  --accent:#00a89d;--accent-ink:#3fc9bf;--accent-hover:#00bcae;--accent-soft:#0a3f39;--accent-fg:#022019;
-  --good:#4caf50;--warn:#ffb000;--danger:#e4002b;
-  --field-bg:#083732;--empty-bg:#062e29;--desc:#bfe0db;--toast-bg:#021815;--toast-fg:#00d1c2;
-  --topbar-bg:#021815;--topbar-fg:#00d1c2;--topbar-tab:#6fa39c;--topbar-btn-border:#166058;--topbar-btn-hover:#0a3f39;
+  --bg:#062430;--panel:#0c2a37;--ink:#eaf6fb;--muted:#7aa3b5;
+  --line:#123a4a;--line-strong:#1b4e61;
+  --accent:#1ba0d6;--accent-ink:#5bc2ea;--accent-hover:#12a3dc;--accent-soft:#0c3446;--accent-fg:#04222e;
+  --good:#3fbf6a;--warn:#f0871f;--danger:#d8352e;
+  --field-bg:#0a2c39;--empty-bg:#072531;--desc:#c3dfea;--toast-bg:#03161e;--toast-fg:#1ba0d6;
+  --topbar-bg:#000000;--topbar-fg:#ffffff;--topbar-tab:#7aa3b5;--topbar-btn-border:#1b4e61;--topbar-btn-hover:#0c2a37;
 }
 html[data-theme="nineties"]{
   --bg:#f4f1ea;--panel:#ffffff;--ink:#1f2a33;--muted:#7c8791;

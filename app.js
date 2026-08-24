@@ -18,7 +18,7 @@
     { id: "michigan",   name: "Michigan",   bg: "#00274c", panel: "#0a355f", ink: "#eef3f8", accent: "#ffcb05", line: "#164574", topbar: "#001730" },
     { id: "lions",      name: "Lions",      bg: "#eceef0", panel: "#ffffff", ink: "#1b2733", accent: "#0076b6", line: "#d3d9de", topbar: "#0076b6" },
     { id: "tigers",     name: "Tigers",     bg: "#0c2340", panel: "#132f52", ink: "#eef2f7", accent: "#fa4616", line: "#1d3f63", topbar: "#07182e" },
-    { id: "pistons",    name: "Pistons '95",bg: "#052e2a", panel: "#0a3f39", ink: "#e6f2f0", accent: "#00a89d", line: "#0f4d46", topbar: "#021815" },
+    { id: "pistons",    name: "Pistons '95",bg: "#062430", panel: "#0c2a37", ink: "#eaf6fb", accent: "#1ba0d6", line: "#123a4a", topbar: "#000000" },
     { id: "nineties",   name: "90s",        bg: "#f4f1ea", panel: "#ffffff", ink: "#1f2a33", accent: "#009fb7", line: "#e2ded4", topbar: "#1f2a33" },
     { id: "eighties",   name: "80s",        bg: "#0b1233", panel: "#141a44", ink: "#eaf0ff", accent: "#ff2e88", line: "#222a5e", topbar: "#060826" },
     { id: "seventies",  name: "70s",        bg: "#e8dcc0", panel: "#f3ead2", ink: "#3a2c17", accent: "#c1440e", line: "#d6c69f", topbar: "#6b4a2b" },
@@ -41,6 +41,7 @@
     daysItems: [],        // "days since" trackers
     showHiddenDays: false,
     editingDayId: null,
+    completingDayId: null,
     newKind: "task",      // task | day — which form the New tab shows
     mainKind: "now",      // now | days — which pane the Home tab shows
   };
@@ -58,12 +59,23 @@
   function save() {
     localStorage.setItem(STORE_KEY, JSON.stringify(state.tasks));
   }
+  function normHistEntry(e) {
+    if (typeof e === "string") return { id: uid(), date: e, note: "" };
+    if (e && typeof e === "object") {
+      return { id: e.id || uid(), date: e.date || new Date().toISOString(), note: String(e.note || "") };
+    }
+    return { id: uid(), date: new Date().toISOString(), note: "" };
+  }
   function loadDays() {
     try {
       const raw = localStorage.getItem(DAYS_KEY);
       state.daysItems = raw ? JSON.parse(raw) : [];
       if (!Array.isArray(state.daysItems)) state.daysItems = [];
     } catch (e) { state.daysItems = []; }
+    // migrate: history may be legacy array of ISO strings
+    state.daysItems.forEach((it) => {
+      it.history = Array.isArray(it.history) ? it.history.map(normHistEntry) : [];
+    });
   }
   function saveDays() {
     localStorage.setItem(DAYS_KEY, JSON.stringify(state.daysItems));
@@ -415,20 +427,64 @@
       createdAt: now,
       hidden: false,
       minimized: false,
+      history: [],
     });
     saveDays();
   }
-  function resetDayWithUndo(id) {
+  function todayISO() {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, "0");
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+  }
+  function isoFromDateInput(dv) {
+    if (!dv) return new Date().toISOString();
+    const parts = dv.split("-").map(Number);
+    const d = new Date(parts[0], parts[1] - 1, parts[2]); // local midnight
+    return isNaN(d) ? new Date().toISOString() : d.toISOString();
+  }
+  function openDoneModal(id) {
     const it = findDay(id);
     if (!it) return;
-    const prev = it.lastReset;
-    it.lastReset = new Date().toISOString();
+    state.completingDayId = id;
+    document.getElementById("done-date").value = todayISO();
+    document.getElementById("done-notes").value = "";
+    document.getElementById("doneModal").hidden = false;
+    document.getElementById("done-notes").focus();
+  }
+  function closeDoneModal() {
+    document.getElementById("doneModal").hidden = true;
+    state.completingDayId = null;
+  }
+  function saveDone() {
+    const it = findDay(state.completingDayId);
+    if (!it) return closeDoneModal();
+    const iso = isoFromDateInput(document.getElementById("done-date").value);
+    const note = document.getElementById("done-notes").value.trim();
+    if (!it.history) it.history = [];
+    const entry = { id: uid(), date: iso, note };
+    const prevReset = it.lastReset;
+    it.history.push(entry);
+    it.lastReset = iso;
+    saveDays();
+    closeDoneModal();
+    renderDays();
+    toast("Completion logged.", {
+      actionLabel: "Undo", ms: 5000,
+      onAction: () => {
+        it.history = (it.history || []).filter((h) => h.id !== entry.id);
+        it.lastReset = prevReset;
+        saveDays();
+        renderDays();
+        toast("Undone.");
+      },
+    });
+  }
+  function deleteLogEntry(id, logid) {
+    const it = findDay(id);
+    if (!it || !it.history) return;
+    it.history = it.history.filter((h) => h.id !== logid);
     saveDays();
     renderDays();
-    toast("Reset to 0 days.", {
-      actionLabel: "Undo", ms: 5000,
-      onAction: () => { it.lastReset = prev; saveDays(); renderDays(); toast("Undone."); },
-    });
   }
   function toggleHideDay(id) {
     const it = findDay(id);
@@ -492,7 +548,23 @@
     const collapsedClass = it.minimized ? " collapsed" : "";
     const hiddenClass = it.hidden ? " ishidden" : "";
     const reachedClass = reached ? " reached" : "";
-    const reachedBadge = reached ? '<span class="badge fits">Overdue </span>' : "";
+    const reachedBadge = reached ? '<span class="badge fits">goal reached</span>' : "";
+    const hist = (it.history || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+    let logHtml = "";
+    if (hist.length) {
+      logHtml =
+        '<div class="daylog"><div class="daylog-title">Log (' + hist.length + ')</div>' +
+        hist.map((h) =>
+          '<div class="daylog-row">' +
+            '<span class="daylog-date">' + fmtDate(h.date) + "</span>" +
+            (h.note
+              ? '<span class="daylog-note">' + esc(h.note) + "</span>"
+              : '<span class="daylog-note daylog-empty">\u2014</span>') +
+            '<button class="daylog-del" data-dact="dellog" data-id="' + it.id + '" data-logid="' + h.id + '" title="Remove entry" aria-label="Remove entry">\u00d7</button>' +
+          "</div>"
+        ).join("") +
+        "</div>";
+    }
     return (
       '<div class="card daycard' + collapsedClass + hiddenClass + reachedClass + '" data-id="' + it.id + '">' +
         '<div class="card-head" role="button" tabindex="0" aria-expanded="' + (!it.minimized) + '">' +
@@ -506,6 +578,7 @@
             reachedBadge +
           "</div>" +
           (it.notes ? '<div class="desc">' + esc(it.notes) + "</div>" : "") +
+          logHtml +
           '<div class="card-actions">' +
             '<button class="btn btn-sm btn-good" data-dact="reset" data-id="' + it.id + '">Complete</button>' +
             '<button class="btn btn-sm" data-dact="edit" data-id="' + it.id + '">Edit</button>' +
@@ -691,6 +764,7 @@
         createdAt: raw.createdAt || now,
         hidden: !!raw.hidden,
         minimized: !!raw.minimized,
+        history: Array.isArray(raw.history) ? raw.history.map(normHistEntry) : [],
       };
       const s = sigOf(it);
       if (sigs.has(s)) { skipped++; return; }
@@ -903,6 +977,11 @@
     document.getElementById("dayModal").addEventListener("click", (e) => {
       if (e.target.id === "dayModal") closeDayEdit();
     });
+    document.getElementById("doneSave").addEventListener("click", saveDone);
+    document.getElementById("doneCancel").addEventListener("click", closeDoneModal);
+    document.getElementById("doneModal").addEventListener("click", (e) => {
+      if (e.target.id === "doneModal") closeDoneModal();
+    });
 
     // card actions + collapse toggle (delegated)
     const mainEl = document.querySelector("main");
@@ -927,9 +1006,10 @@
       if (dbtn) {
         const id = dbtn.dataset.id;
         switch (dbtn.dataset.dact) {
-          case "reset": resetDayWithUndo(id); break;
+          case "reset": openDoneModal(id); break;
           case "edit": openDayEdit(id); break;
           case "hide": toggleHideDay(id); break;
+          case "dellog": deleteLogEntry(id, dbtn.dataset.logid); break;
           case "delete":
             if (confirm("Delete this tracker permanently? This can't be undone.")) {
               deleteDay(id); toast("Deleted.");
@@ -965,6 +1045,7 @@
       if (e.key !== "Escape") return;
       if (!document.getElementById("modal").hidden) closeEdit();
       if (!document.getElementById("dayModal").hidden) closeDayEdit();
+      if (!document.getElementById("doneModal").hidden) closeDoneModal();
     });
 
     // export / import
